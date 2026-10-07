@@ -1,0 +1,33 @@
+name: Keep VITIFI awake
+
+# VITIFI's server goes to sleep when idle, and the first request after
+# that takes about 6 seconds. This asks it one small question every 5
+# minutes through the working day so staff rarely meet that wait.
+#
+# The question is /api/ping: public, no login, touches no records, and
+# answers only "ok", the time and the region. Nothing secret is needed.
+#
+# 16:00-07:59 UTC is 5 am to 8 pm in New Zealand summer time and 4 am to
+# 8 pm in winter. GitHub runs scheduled jobs when it can, sometimes 5-15
+# minutes late, so this keeps the server warm most of the time, not all.
+# This lives in its own public repository because a public one has no
+# limit on Actions minutes; the private VITIFI repository's free 2,000 a
+# month could not carry it.
+
+on:
+  schedule:
+    - cron: '*/5 16-23,0-7 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Ask the server
+        run: |
+          curl --fail --silent --show-error --max-time 30 --retry 2 --retry-delay 5 \
+            --write-out '\nanswered in %{time_total}s\n' \
+            https://vitifi.netlify.app/api/ping
